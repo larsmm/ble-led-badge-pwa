@@ -38,7 +38,7 @@ issue with your browser, operating system, badge model, and what happened.
 The app runs in the browser and can be installed as a PWA when Chrome offers the
 install option.
 
-1. Open the hosted app URL in Android Chrome.
+1. Open in Android Chrome: [https://larsmm.github.io/ble-led-badge-pwa/](https://larsmm.github.io/ble-led-badge-pwa/)
 2. Wait until the app has loaded.
 3. Open Chrome's menu.
 4. Choose `Install app` or `Add to Home screen`, if available.

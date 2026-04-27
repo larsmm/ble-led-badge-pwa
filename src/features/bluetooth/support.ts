@@ -1,5 +1,7 @@
 export type WebBluetoothEnvironment = {
+  browserName: string;
   hasBluetoothApi: boolean;
+  isChromiumBased: boolean;
   isSecureContext: boolean;
 };
 
@@ -8,8 +10,46 @@ export type WebBluetoothSupport = WebBluetoothEnvironment & {
   message: string;
 };
 
+function detectBrowser(userAgent: string): {
+  browserName: string;
+  isChromiumBased: boolean;
+} {
+  const normalized = userAgent.toLowerCase();
+
+  if (normalized.includes("firefox")) {
+    return { browserName: "Firefox", isChromiumBased: false };
+  }
+
+  if (normalized.includes("edg/")) {
+    return { browserName: "Microsoft Edge", isChromiumBased: true };
+  }
+
+  if (normalized.includes("opr/") || normalized.includes("opera")) {
+    return { browserName: "Opera", isChromiumBased: true };
+  }
+
+  if (normalized.includes("brave")) {
+    return { browserName: "Brave", isChromiumBased: true };
+  }
+
+  if (normalized.includes("chrome") || normalized.includes("chromium")) {
+    return { browserName: "Chromium browser", isChromiumBased: true };
+  }
+
+  if (normalized.includes("safari") && !normalized.includes("chrome")) {
+    return { browserName: "Safari", isChromiumBased: false };
+  }
+
+  return { browserName: "This browser", isChromiumBased: false };
+}
+
 export function detectWebBluetoothEnvironment(): WebBluetoothEnvironment {
+  const browser = detectBrowser(
+    typeof navigator !== "undefined" ? navigator.userAgent : ""
+  );
+
   return {
+    ...browser,
     hasBluetoothApi:
       typeof navigator !== "undefined" && "bluetooth" in navigator,
     isSecureContext:
@@ -21,11 +61,16 @@ export function getWebBluetoothSupport(
   environment: WebBluetoothEnvironment = detectWebBluetoothEnvironment()
 ): WebBluetoothSupport {
   if (!environment.hasBluetoothApi) {
+    const browserHint = environment.isChromiumBased
+      ? "Web Bluetooth is not exposed in this browser session."
+      : "Web Bluetooth is only available in Chrome or other Chromium-based browsers.";
+
     return {
       ...environment,
       isSupported: false,
-      message:
-        "Web Bluetooth is not available in this browser. Use Android Chrome or another Chromium-based browser."
+      message: environment.isChromiumBased
+        ? `${environment.browserName} does not provide Web Bluetooth here. ${browserHint} Use Android Chrome or another Chromium-based browser.`
+        : `${environment.browserName} does not provide Web Bluetooth. ${browserHint}`
     };
   }
 

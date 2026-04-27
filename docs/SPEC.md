@@ -406,6 +406,7 @@ Emoji and symbol fallback:
 - `SYMBOL_GLYPHS` maps concrete Unicode sequences to bitmap glyphs
 - `SYMBOL_SEQUENCES` is matched longest-first before normal character rendering
 - `SYMBOL_PICKER_ITEMS` defines the Text tab picker groups and size variants
+- Large picker variants use the displayed symbol plus `LARGE_SYMBOL_MARKER`
 - existing font glyphs take precedence over fallback symbols
 - unsupported emoji or non-ASCII characters fall back to `?`
 - stars are intentionally not included because they were not readable enough at 12 px
@@ -413,7 +414,10 @@ Emoji and symbol fallback:
 Symbol picker behavior:
 
 - the picker shows one button per symbol family
-- the Small/Large toggle controls which concrete symbol sequence is inserted
+- the Large toggle is part of the symbol row and controls which concrete symbol sequence is inserted
+- Large is the default picker mode
+- Large inserts the same visible symbol as Small, followed by the shared invisible large marker
+- picker buttons keep a stable tile size while the displayed symbol grows or shrinks with the selected mode
 - changing the toggle only affects future inserts
 - existing text, loaded presets, and already inserted symbols are not re-rendered into a different size
 - symbols are inserted at the current message cursor position when possible
@@ -529,7 +533,7 @@ Text tab:
 - Preset heading and preset row
 - Message textarea
 - compact symbol picker with one button per symbol family
-- Small/Large symbol size toggle for newly inserted picker symbols
+- Large symbol size toggle for newly inserted picker symbols
 - symbol insertion at the current message cursor position
 - Badge text font select
 - Scroll mode select

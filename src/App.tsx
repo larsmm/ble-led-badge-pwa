@@ -89,7 +89,7 @@ const defaultDraft: DraftState = {
   brightness: 128,
   fontId: "ark-pixel-12-mono",
   letterSpacing: 1,
-  message: "Hello from Android",
+  message: "",
   scrollMode: ScrollMode.LEFT,
   spaceWidthAdjustment: 0,
   speed: 50
@@ -1168,6 +1168,10 @@ export default function App() {
     paintCustomImagePixel(row, column, pointerDrawValueRef.current);
   }
 
+  function handlePixelPointerEnd(): void {
+    isPointerDrawingRef.current = false;
+  }
+
   function handleSaveCustomImage(): void {
     const link = document.createElement("a");
     link.href = createMonochromeImageDataUrl(customImageGrid);
@@ -1349,6 +1353,13 @@ export default function App() {
       </nav>
 
       <section className="tab-content" aria-label="Project status">
+        {!support.isSupported && !support.hasBluetoothApi ? (
+          <article className="panel">
+            <h2>Browser Support</h2>
+            <p className="support-summary">{support.message}</p>
+          </article>
+        ) : null}
+
         {activeTab === "text" ? (
           <TextView
             brightness={brightness}
@@ -1407,6 +1418,7 @@ export default function App() {
             onLoadPreset={loadSelectedPixelPreset}
             onPixelPointerDown={handlePixelPointerDown}
             onPixelPointerEnter={handlePixelPointerEnter}
+            onPixelPointerEnd={handlePixelPointerEnd}
             onPresetNameChange={setPixelPresetName}
             onSavePreset={savePixelPreset}
             onSaveImage={handleSaveCustomImage}

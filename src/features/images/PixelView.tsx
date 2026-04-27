@@ -25,6 +25,7 @@ type PixelViewProps = {
   onLoadPreset: () => void;
   onPixelPointerDown: (row: number, column: number) => void;
   onPixelPointerEnter: (row: number, column: number) => void;
+  onPixelPointerEnd: () => void;
   onPresetNameChange: (name: string) => void;
   onSavePreset: () => void;
   onSaveImage: () => void;
@@ -48,6 +49,7 @@ export function PixelView({
   onLoadPreset,
   onPixelPointerDown,
   onPixelPointerEnter,
+  onPixelPointerEnd,
   onPresetNameChange,
   onSavePreset,
   onSaveImage,
@@ -58,6 +60,8 @@ export function PixelView({
   selectedPresetId
 }: PixelViewProps) {
   const editorRef = useRef<HTMLDivElement | null>(null);
+  const activePointerIdRef = useRef<number | null>(null);
+  const wasLandscapeRef = useRef(false);
   const [pixelSize, setPixelSize] = useState(8);
 
   useEffect(() => {
@@ -80,20 +84,111 @@ export function PixelView({
     };
   }, []);
 
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const isCoarsePointer = () => window.matchMedia("(pointer: coarse)").matches;
+    const isLandscape = () => window.innerWidth > window.innerHeight;
+
+    wasLandscapeRef.current = isLandscape();
+
+    const scrollEditorIntoView = () => {
+      if (!editorRef.current || !isCoarsePointer()) {
+        return;
+      }
+
+      window.requestAnimationFrame(() => {
+        window.requestAnimationFrame(() => {
+          editorRef.current?.scrollIntoView({
+            behavior: "smooth",
+            block: "center",
+            inline: "center"
+          });
+        });
+      });
+    };
+
+    const handleViewportChange = () => {
+      const landscape = isLandscape();
+      const switchedToLandscape = landscape && !wasLandscapeRef.current;
+      wasLandscapeRef.current = landscape;
+
+      if (switchedToLandscape) {
+        scrollEditorIntoView();
+      }
+    };
+
+    window.addEventListener("resize", handleViewportChange);
+    window.addEventListener("orientationchange", handleViewportChange);
+
+    return () => {
+      window.removeEventListener("resize", handleViewportChange);
+      window.removeEventListener("orientationchange", handleViewportChange);
+    };
+  }, []);
+
   const gridStyle = {
     "--pixel-size": `${pixelSize}px`
   } as CSSProperties;
 
-  const handlePointerEnter = (
-    event: PointerEvent<HTMLButtonElement>,
-    rowIndex: number,
-    columnIndex: number
-  ) => {
-    if (event.buttons !== 1) {
+  const getPointerPixel = (event: PointerEvent<HTMLDivElement>) => {
+    const gridRect = event.currentTarget.getBoundingClientRect();
+    const gridGap = 1;
+    const gridPadding = 1;
+    const localX = event.clientX - gridRect.left - gridPadding;
+    const localY = event.clientY - gridRect.top - gridPadding;
+    const pixelPitch = pixelSize + gridGap;
+    const column = Math.floor(localX / pixelPitch);
+    const row = Math.floor(localY / pixelPitch);
+
+    if (row < 0 || row >= 12 || column < 0 || column >= 48) {
+      return null;
+    }
+
+    return { row, column };
+  };
+
+  const handlePointerDown = (event: PointerEvent<HTMLDivElement>) => {
+    if (isBusy) {
       return;
     }
 
-    onPixelPointerEnter(rowIndex, columnIndex);
+    activePointerIdRef.current = event.pointerId;
+    event.currentTarget.setPointerCapture(event.pointerId);
+    event.preventDefault();
+
+    const pixel = getPointerPixel(event);
+    if (pixel) {
+      onPixelPointerDown(pixel.row, pixel.column);
+    }
+  };
+
+  const handlePointerMove = (event: PointerEvent<HTMLDivElement>) => {
+    if (activePointerIdRef.current !== event.pointerId) {
+      return;
+    }
+
+    event.preventDefault();
+
+    const pixel = getPointerPixel(event);
+    if (pixel) {
+      onPixelPointerEnter(pixel.row, pixel.column);
+    }
+  };
+
+  const handlePointerEnd = (event: PointerEvent<HTMLDivElement>) => {
+    if (activePointerIdRef.current !== event.pointerId) {
+      return;
+    }
+
+    activePointerIdRef.current = null;
+    onPixelPointerEnd();
+
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
   };
 
   return (
@@ -173,6 +268,11 @@ export function PixelView({
             className="pixel-editor-grid"
             style={gridStyle}
             aria-label="Badge pixel editor"
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerEnd}
+            onPointerCancel={handlePointerEnd}
+            onLostPointerCapture={handlePointerEnd}
           >
             {customImageGrid.map((row, rowIndex) =>
               row.map((isLit, columnIndex) => (
@@ -180,10 +280,6 @@ export function PixelView({
                   key={`${rowIndex}-${columnIndex}`}
                   className={`pixel-cell ${isLit ? "pixel-on" : "pixel-off"}`}
                   type="button"
-                  onPointerDown={() => onPixelPointerDown(rowIndex, columnIndex)}
-                  onPointerEnter={(event) =>
-                    handlePointerEnter(event, rowIndex, columnIndex)
-                  }
                   disabled={isBusy}
                   aria-label={`Toggle pixel row ${rowIndex + 1} column ${columnIndex + 1}`}
                 />

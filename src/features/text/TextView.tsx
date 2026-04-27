@@ -65,7 +65,7 @@ export function TextView({
   speed
 }: TextViewProps) {
   const messageInputRef = useRef<HTMLTextAreaElement | null>(null);
-  const [symbolSize, setSymbolSize] = useState<SymbolSize>("small");
+  const [symbolSize, setSymbolSize] = useState<SymbolSize>("large");
 
   function insertSymbol(sequence: string): void {
     const input = messageInputRef.current;
@@ -135,25 +135,20 @@ export function TextView({
         rows={3}
         disabled={isBusy}
       />
-      <div className="symbol-picker-toolbar" aria-label="Symbol size">
-        <button
-          className={`symbol-size-button ${symbolSize === "small" ? "symbol-size-active" : ""}`}
-          type="button"
-          onClick={() => setSymbolSize("small")}
-          disabled={isBusy}
-        >
-          Small
-        </button>
+      <div
+        className={`symbol-picker symbol-picker-${symbolSize}`}
+        aria-label="Symbols"
+      >
         <button
           className={`symbol-size-button ${symbolSize === "large" ? "symbol-size-active" : ""}`}
           type="button"
-          onClick={() => setSymbolSize("large")}
+          onClick={() => setSymbolSize(symbolSize === "large" ? "small" : "large")}
           disabled={isBusy}
+          aria-pressed={symbolSize === "large"}
+          title="Toggle large symbols"
         >
           Large
         </button>
-      </div>
-      <div className="symbol-picker" aria-label="Symbols">
         {SYMBOL_PICKER_ITEMS.map((item) => (
           <button
             key={item.label}

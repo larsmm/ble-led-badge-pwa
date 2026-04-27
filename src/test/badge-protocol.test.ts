@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   Command,
   ImageUpload,
+  LARGE_SYMBOL_MARKER,
   SYMBOL_PICKER_ITEMS,
   ScrollMode,
   TextRenderer,
@@ -188,8 +189,28 @@ describe("badge protocol port", () => {
     const spiral = SYMBOL_PICKER_ITEMS.find((item) => item.label === "Spiral");
 
     expect(spiral?.variants.small).toBe("\u{1F300}");
-    expect(spiral?.variants.large).toBe("\u{1F300}");
+    expect(spiral?.variants.large).toBe(`\u{1F300}${LARGE_SYMBOL_MARKER}`);
     expect(TextRenderer.getGlyphColumns("\u{1F300}", "ark-pixel-12-mono")).not.toHaveLength(0);
+  });
+
+  it("uses the same heart symbol for both picker sizes", () => {
+    const heart = SYMBOL_PICKER_ITEMS.find((item) => item.label === "Heart");
+
+    expect(heart?.display).toBe("\u2764");
+    expect(heart?.variants.small).toBe("\u2764");
+    expect(heart?.variants.large).toBe(`\u2764${LARGE_SYMBOL_MARKER}`);
+    expect(
+      TextRenderer.getGlyphColumns(`\u2764${LARGE_SYMBOL_MARKER}`, "ark-pixel-12-mono").length
+    ).toBeGreaterThan(
+      TextRenderer.getGlyphColumns("\u2764", "ark-pixel-12-mono").length
+    );
+  });
+
+  it("uses the displayed picker symbol plus one shared large marker for large variants", () => {
+    for (const item of SYMBOL_PICKER_ITEMS) {
+      expect(item.variants.small).toBe(item.display);
+      expect(item.variants.large).toBe(`${item.display}${LARGE_SYMBOL_MARKER}`);
+    }
   });
 
   it("matches the Python upload packet encryption", () => {
